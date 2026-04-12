@@ -30,6 +30,19 @@ export interface Order {
   created_date: string;
 }
 
+export interface CashRegister {
+  id: string;
+  date: string; // YYYY-MM-DD
+  opened_at: string;
+  closed_at?: string;
+  initial_cash: number;
+  status: "open" | "closed";
+  total_sales: number;
+  total_orders: number;
+  by_payment: Record<string, number>;
+  order_ids: string[];
+}
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
@@ -99,6 +112,52 @@ export const orderStore = {
     if (idx === -1) return null;
     items[idx] = { ...items[idx], ...data };
     saveAll("orders", items);
+    return items[idx];
+  },
+};
+
+export const cashRegisterStore = {
+  list(): CashRegister[] {
+    return getAll<CashRegister>("cash_registers").sort((a, b) => new Date(b.opened_at).getTime() - new Date(a.opened_at).getTime());
+  },
+  getOpen(): CashRegister | null {
+    return getAll<CashRegister>("cash_registers").find(r => r.status === "open") || null;
+  },
+  getByDate(date: string): CashRegister | null {
+    return getAll<CashRegister>("cash_registers").find(r => r.date === date) || null;
+  },
+  open(initialCash: number): CashRegister {
+    const items = getAll<CashRegister>("cash_registers");
+    const now = new Date();
+    const register: CashRegister = {
+      id: generateId(),
+      date: now.toISOString().split("T")[0],
+      opened_at: now.toISOString(),
+      initial_cash: initialCash,
+      status: "open",
+      total_sales: 0,
+      total_orders: 0,
+      by_payment: {},
+      order_ids: [],
+    };
+    items.push(register);
+    saveAll("cash_registers", items);
+    return register;
+  },
+  close(id: string, summary: { total_sales: number; total_orders: number; by_payment: Record<string, number>; order_ids: string[] }): CashRegister | null {
+    const items = getAll<CashRegister>("cash_registers");
+    const idx = items.findIndex(i => i.id === id);
+    if (idx === -1) return null;
+    items[idx] = { ...items[idx], ...summary, status: "closed", closed_at: new Date().toISOString() };
+    saveAll("cash_registers", items);
+    return items[idx];
+  },
+  update(id: string, data: Partial<CashRegister>): CashRegister | null {
+    const items = getAll<CashRegister>("cash_registers");
+    const idx = items.findIndex(i => i.id === id);
+    if (idx === -1) return null;
+    items[idx] = { ...items[idx], ...data };
+    saveAll("cash_registers", items);
     return items[idx];
   },
 };
