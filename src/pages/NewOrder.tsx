@@ -1,0 +1,187 @@
+import { useState, useEffect } from "react";
+import { useNavigate, Link } from "react-router-dom";
+import { toast } from "@/components/ui/use-toast";
+import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Search } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
+import { menuItemStore, orderStore, type MenuItem, type OrderItem } from "@/lib/store";
+
+const categoryEmojis: Record<string, string> = {
+  Lanches: "🍔", Bebidas: "🥤", Porções: "🍟", Doces: "🍰", Combos: "🎉",
+};
+
+export default function NewOrder() {
+  const navigate = useNavigate();
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [cart, setCart] = useState<OrderItem[]>([]);
+  const [activeCategory, setActiveCategory] = useState("all");
+  const [searchQuery, setSearchQuery] = useState("");
+  const [paymentMethod, setPaymentMethod] = useState("");
+
+  useEffect(() => {
+    setMenuItems(menuItemStore.filter({ available: true }));
+    setLoading(false);
+  }, []);
+
+  const categories = ["all", ...new Set(menuItems.map((i) => i.category))];
+
+  const filteredItems = menuItems.filter((i) => {
+    if (activeCategory !== "all" && i.category !== activeCategory) return false;
+    if (searchQuery && !i.name.toLowerCase().includes(searchQuery.toLowerCase())) return false;
+    return true;
+  });
+
+  const addToCart = (item: MenuItem) => {
+    setCart((prev) => {
+      const existing = prev.find((c) => c.menu_item_id === item.id);
+      if (existing) return prev.map((c) => c.menu_item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
+      return [...prev, { menu_item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
+    });
+  };
+
+  const updateQuantity = (menuItemId: string, delta: number) => {
+    setCart((prev) => prev.map((c) => c.menu_item_id === menuItemId ? { ...c, quantity: Math.max(0, c.quantity + delta) } : c).filter((c) => c.quantity > 0));
+  };
+
+  const removeFromCart = (menuItemId: string) => {
+    setCart((prev) => prev.filter((c) => c.menu_item_id !== menuItemId));
+  };
+
+  const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+
+  const handleSubmit = () => {
+    if (cart.length === 0) {
+      toast({ title: "Erro", description: "Adicione pelo menos um item", variant: "destructive" });
+      return;
+    }
+    setSubmitting(true);
+    const allOrders = orderStore.list("-order_number", 1);
+    const nextNumber = allOrders.length > 0 && allOrders[0].order_number ? allOrders[0].order_number + 1 : 1;
+
+    orderStore.create({
+      customer_name: "-",
+      items: cart,
+      total,
+      status: "pending",
+      order_number: nextNumber,
+      payment_method: paymentMethod || undefined,
+    });
+
+    toast({ title: "Pedido criado!", description: `Pedido #${nextNumber} criado com sucesso!` });
+    navigate("/pedidos");
+  };
+
+  if (loading) {
+    return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" /></div>;
+  }
+
+  return (
+    <div className="max-w-6xl mx-auto">
+      <div className="flex items-center gap-3 mb-6">
+        <Link to="/" className="p-2 rounded-lg hover:bg-muted transition-colors">
+          <ArrowLeft className="h-5 w-5 text-muted-foreground" />
+        </Link>
+        <div>
+          <h1 className="text-3xl font-heading font-bold text-foreground">Novo Pedido</h1>
+          <p className="text-muted-foreground mt-1">Selecione os itens do cardápio</p>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="lg:col-span-2 space-y-4">
+          <div className="relative mb-2">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input value={searchQuery} onChange={(e) => setSearchQuery(e.target.value)} placeholder="Buscar item..." className="pl-10" />
+          </div>
+          <div className="flex gap-2 flex-wrap">
+            {categories.map((cat) => (
+              <button key={cat} onClick={() => setActiveCategory(cat)} className={cn(
+                "px-4 py-2 rounded-xl text-sm font-medium transition-all",
+                activeCategory === cat ? "bg-primary text-primary-foreground" : "bg-card border border-border text-muted-foreground hover:text-foreground"
+              )}>
+                {cat === "all" ? "Todos" : `${categoryEmojis[cat] || ""} ${cat}`}
+              </button>
+            ))}
+          </div>
+
+          {filteredItems.length === 0 ? (
+            <div className="bg-card rounded-2xl border border-border p-12 text-center">
+              <p className="text-muted-foreground">Nenhum item cadastrado no cardápio</p>
+              <Link to="/cardapio" className="text-primary text-sm font-medium hover:underline mt-2 inline-block">Cadastrar itens</Link>
+            </div>
+          ) : (
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              {filteredItems.map((item) => {
+                const inCart = cart.find((c) => c.menu_item_id === item.id);
+                return (
+                  <button key={item.id} onClick={() => addToCart(item)} className={cn(
+                    "bg-card rounded-xl border p-4 text-left transition-all duration-200 hover:shadow-md",
+                    inCart ? "border-primary shadow-sm" : "border-border"
+                  )}>
+                    <div className="flex items-center gap-3">
+                      <span className="text-2xl">{categoryEmojis[item.category] || "🍽️"}</span>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-medium text-foreground truncate">{item.name}</p>
+                        <p className="text-sm text-primary font-heading font-bold">R$ {item.price?.toFixed(2)}</p>
+                      </div>
+                      {inCart && (
+                        <span className="bg-primary text-primary-foreground text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center">{inCart.quantity}</span>
+                      )}
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        <div className="lg:col-span-1">
+          <div className="bg-card rounded-2xl border border-border p-5 sticky top-4 space-y-4">
+            <h2 className="font-heading font-bold text-lg flex items-center gap-2">
+              <ShoppingBag className="h-5 w-5 text-primary" /> Resumo do Pedido
+            </h2>
+            <div>
+              <label className="text-sm font-medium text-foreground">Pagamento</label>
+              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
+                  <SelectItem value="Cartão">💳 Cartão</SelectItem>
+                  <SelectItem value="Pix">📱 Pix</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="border-t border-border pt-3 space-y-2">
+              {cart.length === 0 ? (
+                <p className="text-sm text-muted-foreground text-center py-4">Carrinho vazio</p>
+              ) : cart.map((item) => (
+                <div key={item.menu_item_id} className="flex items-center justify-between gap-2">
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-medium truncate">{item.name}</p>
+                    <p className="text-xs text-muted-foreground">R$ {item.price.toFixed(2)} × {item.quantity}</p>
+                  </div>
+                  <div className="flex items-center gap-1">
+                    <button onClick={() => updateQuantity(item.menu_item_id, -1)} className="p-1 rounded-md hover:bg-muted"><Minus className="h-3 w-3" /></button>
+                    <span className="text-sm font-medium w-6 text-center">{item.quantity}</span>
+                    <button onClick={() => updateQuantity(item.menu_item_id, 1)} className="p-1 rounded-md hover:bg-muted"><Plus className="h-3 w-3" /></button>
+                    <button onClick={() => removeFromCart(item.menu_item_id)} className="p-1 rounded-md text-destructive hover:bg-destructive/10 ml-1"><Trash2 className="h-3 w-3" /></button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <div className="border-t border-border pt-3 flex items-center justify-between">
+              <span className="font-heading font-bold text-lg">Total</span>
+              <span className="font-heading font-bold text-xl text-primary">R$ {total.toFixed(2)}</span>
+            </div>
+            <button onClick={handleSubmit} disabled={submitting || cart.length === 0} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20">
+              {submitting ? "Criando..." : "Criar Pedido"}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
