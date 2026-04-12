@@ -8,6 +8,8 @@ import NewOrder from "@/pages/NewOrder";
 import Orders from "@/pages/Orders";
 import Menu from "@/pages/Menu";
 import CashClose from "@/pages/CashClose";
+import CashHistory from "@/pages/CashHistory";
+import Reports from "@/pages/Reports";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -24,6 +26,8 @@ const App = () => (
             <Route path="/pedidos" element={<Orders />} />
             <Route path="/cardapio" element={<Menu />} />
             <Route path="/fechamento" element={<CashClose />} />
+            <Route path="/caixas-anteriores" element={<CashHistory />} />
+            <Route path="/relatorios" element={<Reports />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
