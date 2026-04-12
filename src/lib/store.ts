@@ -30,6 +30,19 @@ export interface Order {
   created_date: string;
 }
 
+export interface CashRegister {
+  id: string;
+  date: string; // YYYY-MM-DD
+  opened_at: string;
+  closed_at?: string;
+  initial_cash: number;
+  status: "open" | "closed";
+  total_sales: number;
+  total_orders: number;
+  by_payment: Record<string, number>;
+  order_ids: string[];
+}
+
 function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
