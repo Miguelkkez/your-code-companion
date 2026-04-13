@@ -16,6 +16,9 @@ interface MenuItemCardProps {
 }
 
 export default function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardProps) {
+  const profit = item.cost_price != null ? item.price - item.cost_price : null;
+  const margin = item.cost_price != null && item.price > 0 ? ((profit! / item.price) * 100) : null;
+
   return (
     <div className="bg-card rounded-2xl border border-border p-5 shadow-sm hover:shadow-md transition-all duration-300 group">
       <div className="flex items-start justify-between">
@@ -35,9 +38,21 @@ export default function MenuItemCard({ item, onEdit, onDelete }: MenuItemCardPro
             {item.description && (
               <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{item.description}</p>
             )}
-            <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md mt-2">
-              {item.category}
-            </span>
+            <div className="flex items-center gap-2 mt-2">
+              <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                {item.category}
+              </span>
+              {item.cost_price != null && (
+                <span className="inline-block text-xs text-muted-foreground bg-muted px-2 py-0.5 rounded-md">
+                  Custo: R$ {item.cost_price.toFixed(2)}
+                </span>
+              )}
+              {margin != null && (
+                <span className="inline-block text-xs text-emerald-600 bg-emerald-500/10 px-2 py-0.5 rounded-md">
+                  Margem: {margin.toFixed(0)}%
+                </span>
+              )}
+            </div>
           </div>
         </div>
         <p className="font-heading font-bold text-lg text-primary ml-3 whitespace-nowrap">

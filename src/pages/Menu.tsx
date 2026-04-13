@@ -11,7 +11,7 @@ import { menuItemStore, type MenuItem } from "@/lib/store";
 
 const categories = ["Lanches", "Bebidas", "Porções", "Doces", "Combos"];
 
-const emptyForm = { name: "", description: "", price: "", category: "", available: true };
+const emptyForm = { name: "", description: "", price: "", cost_price: "", category: "", available: true };
 
 export default function Menu() {
   const [items, setItems] = useState<MenuItem[]>([]);
@@ -32,7 +32,14 @@ export default function Menu() {
 
   const openEdit = (item: MenuItem) => {
     setEditingItem(item);
-    setForm({ name: item.name || "", description: item.description || "", price: item.price?.toString() || "", category: item.category || "", available: item.available !== false });
+    setForm({
+      name: item.name || "",
+      description: item.description || "",
+      price: item.price?.toString() || "",
+      cost_price: item.cost_price?.toString() || "",
+      category: item.category || "",
+      available: item.available !== false,
+    });
     setDialogOpen(true);
   };
 
@@ -42,7 +49,14 @@ export default function Menu() {
       return;
     }
     setSubmitting(true);
-    const data = { name: form.name.trim(), description: form.description.trim() || undefined, price: parseFloat(form.price), category: form.category, available: form.available };
+    const data = {
+      name: form.name.trim(),
+      description: form.description.trim() || undefined,
+      price: parseFloat(form.price),
+      cost_price: form.cost_price ? parseFloat(form.cost_price) : undefined,
+      category: form.category,
+      available: form.available,
+    };
 
     if (editingItem) {
       menuItemStore.update(editingItem.id, data);
@@ -118,18 +132,22 @@ export default function Menu() {
             </div>
             <div className="grid grid-cols-2 gap-4">
               <div>
-                <label className="text-sm font-medium">Preço *</label>
+                <label className="text-sm font-medium">Preço de Venda *</label>
                 <Input type="number" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} placeholder="15.00" className="mt-1" />
               </div>
               <div>
-                <label className="text-sm font-medium">Categoria *</label>
-                <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
-                  <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
-                  <SelectContent>
-                    {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
-                  </SelectContent>
-                </Select>
+                <label className="text-sm font-medium">Preço de Custo</label>
+                <Input type="number" step="0.01" value={form.cost_price} onChange={(e) => setForm({ ...form, cost_price: e.target.value })} placeholder="8.00" className="mt-1" />
               </div>
+            </div>
+            <div>
+              <label className="text-sm font-medium">Categoria *</label>
+              <Select value={form.category} onValueChange={(v) => setForm({ ...form, category: v })}>
+                <SelectTrigger className="mt-1"><SelectValue placeholder="Selecione" /></SelectTrigger>
+                <SelectContent>
+                  {categories.map((cat) => <SelectItem key={cat} value={cat}>{cat}</SelectItem>)}
+                </SelectContent>
+              </Select>
             </div>
             <div className="flex items-center justify-between">
               <label className="text-sm font-medium">Disponível</label>

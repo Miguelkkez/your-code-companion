@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
-import { BarChart3, TrendingUp, Award, Calendar } from "lucide-react";
-import { orderStore, type Order } from "@/lib/store";
+import { BarChart3, TrendingUp, Award, Calendar, DollarSign } from "lucide-react";
+import { orderStore, menuItemStore, type Order, type MenuItem } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
@@ -8,11 +8,13 @@ const dayNamesShort = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
 
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
+  const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [period, setPeriod] = useState<"7" | "30" | "all">("30");
 
   useEffect(() => {
     setOrders(orderStore.list("-created_date", 9999));
+    setMenuItems(menuItemStore.list());
     setLoading(false);
   }, []);
 
@@ -26,16 +28,24 @@ export default function Reports() {
     return diff <= days;
   });
 
-  // Most sold products
-  const productMap: Record<string, { name: string; quantity: number; revenue: number; byDay: number[] }> = {};
+  // Build a cost lookup from menu items
+  const costLookup: Record<string, number> = {};
+  menuItems.forEach((m) => {
+    if (m.cost_price != null) costLookup[m.name] = m.cost_price;
+  });
+
+  // Most sold products with cost/profit
+  const productMap: Record<string, { name: string; quantity: number; revenue: number; cost: number; byDay: number[] }> = {};
   filteredOrders.forEach((o) => {
     const dayOfWeek = new Date(o.created_date).getDay();
     o.items?.forEach((item) => {
       if (!productMap[item.name]) {
-        productMap[item.name] = { name: item.name, quantity: 0, revenue: 0, byDay: Array(7).fill(0) };
+        productMap[item.name] = { name: item.name, quantity: 0, revenue: 0, cost: 0, byDay: Array(7).fill(0) };
       }
       productMap[item.name].quantity += item.quantity;
       productMap[item.name].revenue += item.price * item.quantity;
+      const itemCost = item.cost_price ?? costLookup[item.name] ?? 0;
+      productMap[item.name].cost += itemCost * item.quantity;
       productMap[item.name].byDay[dayOfWeek] += item.quantity;
     });
   });
@@ -53,18 +63,18 @@ export default function Reports() {
   });
   const maxDaySales = Math.max(...salesByDay, 1);
 
-  // Daily revenue over time
-  const dailyRevenue: Record<string, number> = {};
-  filteredOrders.forEach((o) => {
-    const dateKey = o.created_date.split("T")[0];
-    dailyRevenue[dateKey] = (dailyRevenue[dateKey] || 0) + (o.total || 0);
-  });
-
   const totalRevenue = filteredOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const totalCost = filteredOrders.reduce((s, o) => {
+    const orderCost = o.total_cost ?? o.items?.reduce((c, item) => {
+      const itemCost = item.cost_price ?? costLookup[item.name] ?? 0;
+      return c + itemCost * item.quantity;
+    }, 0) ?? 0;
+    return s + orderCost;
+  }, 0);
+  const totalProfit = totalRevenue - totalCost;
   const totalOrders = filteredOrders.length;
   const avgTicket = totalOrders > 0 ? totalRevenue / totalOrders : 0;
 
-  // Best selling day name
   const bestDayIdx = salesByDay.indexOf(Math.max(...salesByDay));
   const bestDay = salesByDay[bestDayIdx] > 0 ? dayNames[bestDayIdx] : "—";
 
@@ -77,7 +87,7 @@ export default function Reports() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Relatório de Vendas</h1>
-          <p className="text-muted-foreground mt-1">Análise de desempenho dos seus produtos</p>
+          <p className="text-muted-foreground mt-1">Análise de desempenho e lucratividade</p>
         </div>
         <div className="flex gap-2">
           {(["7", "30", "all"] as const).map((p) => (
@@ -98,10 +108,18 @@ export default function Reports() {
       </div>
 
       {/* Summary cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
         <div className="bg-card rounded-2xl p-5 border border-border">
           <p className="text-sm text-muted-foreground">Faturamento</p>
           <p className="text-2xl font-heading font-bold mt-1 text-foreground">R$ {totalRevenue.toFixed(2)}</p>
+        </div>
+        <div className="bg-card rounded-2xl p-5 border border-border">
+          <p className="text-sm text-muted-foreground">Custo</p>
+          <p className="text-2xl font-heading font-bold mt-1 text-destructive">R$ {totalCost.toFixed(2)}</p>
+        </div>
+        <div className="bg-card rounded-2xl p-5 border border-border">
+          <p className="text-sm text-muted-foreground">Lucro</p>
+          <p className={`text-2xl font-heading font-bold mt-1 ${totalProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>R$ {totalProfit.toFixed(2)}</p>
         </div>
         <div className="bg-card rounded-2xl p-5 border border-border">
           <p className="text-sm text-muted-foreground">Pedidos</p>
@@ -110,10 +128,6 @@ export default function Reports() {
         <div className="bg-card rounded-2xl p-5 border border-border">
           <p className="text-sm text-muted-foreground">Ticket Médio</p>
           <p className="text-2xl font-heading font-bold mt-1 text-foreground">R$ {avgTicket.toFixed(2)}</p>
-        </div>
-        <div className="bg-card rounded-2xl p-5 border border-border">
-          <p className="text-sm text-muted-foreground">Melhor Dia</p>
-          <p className="text-2xl font-heading font-bold mt-1 text-foreground">{bestDay}</p>
         </div>
       </div>
 
@@ -127,34 +141,40 @@ export default function Reports() {
             <p className="text-muted-foreground text-sm text-center py-8">Nenhuma venda no período</p>
           ) : (
             <div className="space-y-3">
-              {topProducts.slice(0, 10).map((product, idx) => (
-                <div key={product.name} className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-2">
-                      <span className={cn(
-                        "text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center",
-                        idx === 0 ? "bg-amber-500/20 text-amber-600" :
-                        idx === 1 ? "bg-muted text-muted-foreground" :
-                        idx === 2 ? "bg-orange-500/20 text-orange-600" :
-                        "bg-muted text-muted-foreground"
-                      )}>
-                        {idx + 1}
-                      </span>
-                      <span className="text-sm font-medium text-foreground">{product.name}</span>
+              {topProducts.slice(0, 10).map((product, idx) => {
+                const productProfit = product.revenue - product.cost;
+                return (
+                  <div key={product.name} className="space-y-1.5">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <span className={cn(
+                          "text-xs font-bold h-6 w-6 rounded-full flex items-center justify-center",
+                          idx === 0 ? "bg-amber-500/20 text-amber-600" :
+                          idx === 1 ? "bg-muted text-muted-foreground" :
+                          idx === 2 ? "bg-orange-500/20 text-orange-600" :
+                          "bg-muted text-muted-foreground"
+                        )}>
+                          {idx + 1}
+                        </span>
+                        <span className="text-sm font-medium text-foreground">{product.name}</span>
+                      </div>
+                      <div className="text-right">
+                        <span className="text-sm font-heading font-bold text-foreground">{product.quantity}x</span>
+                        <span className="text-xs text-muted-foreground ml-2">R$ {product.revenue.toFixed(2)}</span>
+                        {product.cost > 0 && (
+                          <span className="text-xs text-emerald-600 ml-1">(+R$ {productProfit.toFixed(2)})</span>
+                        )}
+                      </div>
                     </div>
-                    <div className="text-right">
-                      <span className="text-sm font-heading font-bold text-foreground">{product.quantity}x</span>
-                      <span className="text-xs text-muted-foreground ml-2">R$ {product.revenue.toFixed(2)}</span>
+                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                      <div
+                        className="h-full bg-primary rounded-full transition-all duration-500"
+                        style={{ width: `${(product.quantity / maxQty) * 100}%` }}
+                      />
                     </div>
                   </div>
-                  <div className="h-2 bg-muted rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-primary rounded-full transition-all duration-500"
-                      style={{ width: `${(product.quantity / maxQty) * 100}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                );
+              })}
             </div>
           )}
         </div>
@@ -202,11 +222,13 @@ export default function Reports() {
                     <th key={d} className="text-center py-3 px-2 font-medium text-muted-foreground">{d}</th>
                   ))}
                   <th className="text-right py-3 px-2 font-medium text-muted-foreground">Total</th>
+                  <th className="text-right py-3 px-2 font-medium text-muted-foreground">Lucro</th>
                 </tr>
               </thead>
               <tbody>
                 {topProducts.slice(0, 8).map((product) => {
                   const maxDay = Math.max(...product.byDay);
+                  const productProfit = product.revenue - product.cost;
                   return (
                     <tr key={product.name} className="border-b border-border/50">
                       <td className="py-3 px-2 font-medium text-foreground">{product.name}</td>
@@ -225,6 +247,9 @@ export default function Reports() {
                         </td>
                       ))}
                       <td className="text-right py-3 px-2 font-heading font-bold text-foreground">{product.quantity}</td>
+                      <td className={`text-right py-3 px-2 font-heading font-bold ${productProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        R$ {productProfit.toFixed(2)}
+                      </td>
                     </tr>
                   );
                 })}
