@@ -1,5 +1,9 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { initializeStore } from "./lib/store";
 
-createRoot(document.getElementById("root")!).render(<App />);
+// Initialize store (loads files from disk in Electron, no-op in browser)
+initializeStore().then(() => {
+  createRoot(document.getElementById("root")!).render(<App />);
+});
