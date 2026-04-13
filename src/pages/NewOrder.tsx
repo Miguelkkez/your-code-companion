@@ -38,7 +38,7 @@ export default function NewOrder() {
     setCart((prev) => {
       const existing = prev.find((c) => c.menu_item_id === item.id);
       if (existing) return prev.map((c) => c.menu_item_id === item.id ? { ...c, quantity: c.quantity + 1 } : c);
-      return [...prev, { menu_item_id: item.id, name: item.name, price: item.price, quantity: 1 }];
+      return [...prev, { menu_item_id: item.id, name: item.name, price: item.price, cost_price: item.cost_price, quantity: 1 }];
     });
   };
 
@@ -51,6 +51,7 @@ export default function NewOrder() {
   };
 
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
+  const totalCost = cart.reduce((sum, item) => sum + (item.cost_price || 0) * item.quantity, 0);
 
   const handleSubmit = () => {
     if (cart.length === 0) {
@@ -65,6 +66,7 @@ export default function NewOrder() {
       customer_name: "-",
       items: cart,
       total,
+      total_cost: totalCost,
       status: "pending",
       order_number: nextNumber,
       payment_method: paymentMethod || undefined,

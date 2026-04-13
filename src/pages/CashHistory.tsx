@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { ArrowLeft, Calendar, DollarSign, ShoppingBag, ChevronDown, ChevronUp, CreditCard, Banknote, Smartphone } from "lucide-react";
+import { ArrowLeft, Calendar, DollarSign, ChevronDown, ChevronUp, CreditCard, Banknote, Smartphone, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { cashRegisterStore, orderStore, type CashRegister, type Order } from "@/lib/store";
 
@@ -52,23 +52,22 @@ export default function CashHistory() {
             const isExpanded = expandedId === reg.id;
             const regOrders = isExpanded ? getOrdersForRegister(reg) : [];
             const dateFormatted = new Date(reg.date + "T12:00:00").toLocaleDateString("pt-BR", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
+              weekday: "long", day: "numeric", month: "long", year: "numeric",
             });
 
-            // Aggregate items sold
-            const itemsSold: Record<string, { name: string; quantity: number; total: number }> = {};
+            const itemsSold: Record<string, { name: string; quantity: number; total: number; cost: number }> = {};
             regOrders.forEach((o) => {
               o.items?.forEach((item) => {
                 if (!itemsSold[item.name]) {
-                  itemsSold[item.name] = { name: item.name, quantity: 0, total: 0 };
+                  itemsSold[item.name] = { name: item.name, quantity: 0, total: 0, cost: 0 };
                 }
                 itemsSold[item.name].quantity += item.quantity;
                 itemsSold[item.name].total += item.price * item.quantity;
+                itemsSold[item.name].cost += (item.cost_price || 0) * item.quantity;
               });
             });
+
+            const profit = (reg.total_profit != null) ? reg.total_profit : (reg.total_sales - (reg.total_cost || 0));
 
             return (
               <div key={reg.id} className="bg-card rounded-2xl border border-border overflow-hidden">
@@ -91,7 +90,9 @@ export default function CashHistory() {
                   <div className="flex items-center gap-4">
                     <div className="text-right">
                       <p className="font-heading font-bold text-lg text-primary">R$ {reg.total_sales.toFixed(2)}</p>
-                      <p className="text-xs text-muted-foreground">{reg.total_orders} pedido{reg.total_orders !== 1 ? "s" : ""}</p>
+                      <p className={`text-xs font-medium ${profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                        Lucro: R$ {profit.toFixed(2)}
+                      </p>
                     </div>
                     {isExpanded ? <ChevronUp className="h-5 w-5 text-muted-foreground" /> : <ChevronDown className="h-5 w-5 text-muted-foreground" />}
                   </div>
@@ -99,7 +100,6 @@ export default function CashHistory() {
 
                 {isExpanded && (
                   <div className="border-t border-border p-5 space-y-5">
-                    {/* Payment summary */}
                     <div>
                       <h3 className="font-heading font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">Forma de Pagamento</h3>
                       <div className="space-y-2">
@@ -121,7 +121,6 @@ export default function CashHistory() {
                       </div>
                     </div>
 
-                    {/* Items sold */}
                     <div>
                       <h3 className="font-heading font-semibold text-sm text-muted-foreground mb-3 uppercase tracking-wider">Itens Vendidos</h3>
                       {Object.keys(itemsSold).length === 0 ? (
@@ -136,22 +135,38 @@ export default function CashHistory() {
                                   <span className="text-xs bg-primary/10 text-primary font-bold h-6 w-6 rounded-full flex items-center justify-center">{item.quantity}</span>
                                   <span className="text-sm font-medium text-foreground">{item.name}</span>
                                 </div>
-                                <span className="text-sm font-heading font-bold text-foreground">R$ {item.total.toFixed(2)}</span>
+                                <div className="text-right">
+                                  <span className="text-sm font-heading font-bold text-foreground">R$ {item.total.toFixed(2)}</span>
+                                  {item.cost > 0 && (
+                                    <span className="text-xs text-emerald-600 ml-2">
+                                      (lucro: R$ {(item.total - item.cost).toFixed(2)})
+                                    </span>
+                                  )}
+                                </div>
                               </div>
                             ))}
                         </div>
                       )}
                     </div>
 
-                    {/* Register info */}
                     <div className="bg-muted/50 rounded-xl p-4 space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="text-muted-foreground">Fundo de caixa</span>
                         <span className="font-medium">R$ {reg.initial_cash.toFixed(2)}</span>
                       </div>
                       <div className="flex justify-between text-sm">
-                        <span className="text-muted-foreground">Dinheiro em caixa (final)</span>
-                        <span className="font-medium text-emerald-600">R$ {(reg.initial_cash + (reg.by_payment?.["Dinheiro"] || 0)).toFixed(2)}</span>
+                        <span className="text-muted-foreground">Vendas totais</span>
+                        <span className="font-medium text-primary">R$ {reg.total_sales.toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-muted-foreground">Custo total</span>
+                        <span className="font-medium text-destructive">- R$ {(reg.total_cost || 0).toFixed(2)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm pt-2 border-t border-border">
+                        <span className="font-heading font-semibold">Lucro</span>
+                        <span className={`font-heading font-bold ${profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                          R$ {profit.toFixed(2)}
+                        </span>
                       </div>
                     </div>
                   </div>

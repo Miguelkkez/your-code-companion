@@ -41,6 +41,11 @@ export default function CashClose() {
       (o) => o.created_date.startsWith(regDate) && o.status !== "cancelled"
     );
     const totalSales = regOrders.reduce((s, o) => s + (o.total || 0), 0);
+    const totalCost = regOrders.reduce((s, o) => {
+      const orderCost = o.total_cost ?? o.items?.reduce((c, item) => c + (item.cost_price || 0) * item.quantity, 0) ?? 0;
+      return s + orderCost;
+    }, 0);
+    const totalProfit = totalSales - totalCost;
     const byPayment = regOrders.reduce((acc, o) => {
       const m = o.payment_method || "Não informado";
       acc[m] = (acc[m] || 0) + (o.total || 0);
@@ -49,13 +54,15 @@ export default function CashClose() {
 
     cashRegisterStore.close(openRegister.id, {
       total_sales: totalSales,
+      total_cost: totalCost,
+      total_profit: totalProfit,
       total_orders: regOrders.length,
       by_payment: byPayment,
       order_ids: regOrders.map((o) => o.id),
     });
 
     setConfirmClose(false);
-    toast({ title: "Caixa fechado!", description: `Total de vendas: R$ ${totalSales.toFixed(2)}` });
+    toast({ title: "Caixa fechado!", description: `Lucro: R$ ${totalProfit.toFixed(2)}` });
     reload();
   };
 
@@ -70,7 +77,6 @@ export default function CashClose() {
     return <div className="flex items-center justify-center h-64"><div className="w-8 h-8 border-4 border-primary/20 border-t-primary rounded-full animate-spin" /></div>;
   }
 
-  // No register open — show "Open register" screen
   if (!openRegister) {
     return (
       <div className="max-w-2xl mx-auto space-y-6">
@@ -85,7 +91,6 @@ export default function CashClose() {
             <History className="h-4 w-4" /> Caixas anteriores
           </Link>
         </div>
-
         <div className="bg-card rounded-2xl border border-border p-8 text-center space-y-6">
           <div className="h-16 w-16 rounded-2xl bg-primary/10 flex items-center justify-center mx-auto">
             <Lock className="h-8 w-8 text-primary" />
@@ -97,19 +102,9 @@ export default function CashClose() {
           <div className="max-w-xs mx-auto space-y-4">
             <div className="flex items-center gap-3">
               <span className="text-muted-foreground font-medium">R$</span>
-              <Input
-                type="number"
-                step="0.01"
-                placeholder="0,00"
-                value={initialCash}
-                onChange={(e) => setInitialCash(e.target.value)}
-                className="text-lg font-heading font-bold"
-              />
+              <Input type="number" step="0.01" placeholder="0,00" value={initialCash} onChange={(e) => setInitialCash(e.target.value)} className="text-lg font-heading font-bold" />
             </div>
-            <button
-              onClick={handleOpenRegister}
-              className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20"
-            >
+            <button onClick={handleOpenRegister} className="w-full flex items-center justify-center gap-2 bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
               <Unlock className="h-5 w-5" /> Abrir Caixa
             </button>
           </div>
@@ -118,7 +113,6 @@ export default function CashClose() {
     );
   }
 
-  // Register is open — show current day summary
   const regDate = openRegister.date;
   const todayOrders = orders.filter(
     (o) => o.created_date.startsWith(regDate) && o.status !== "cancelled"
@@ -131,6 +125,11 @@ export default function CashClose() {
   }, {} as Record<string, number>);
 
   const totalSales = todayOrders.reduce((s, o) => s + (o.total || 0), 0);
+  const totalCost = todayOrders.reduce((s, o) => {
+    const orderCost = o.total_cost ?? o.items?.reduce((c, item) => c + (item.cost_price || 0) * item.quantity, 0) ?? 0;
+    return s + orderCost;
+  }, 0);
+  const totalProfit = totalSales - totalCost;
   const cashSales = byPayment["Dinheiro"] || 0;
   const cashInRegister = openRegister.initial_cash + cashSales;
 
@@ -148,7 +147,6 @@ export default function CashClose() {
         </Link>
       </div>
 
-      {/* Status badge */}
       <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
         <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
         <span className="text-sm font-medium text-emerald-700">
@@ -156,7 +154,6 @@ export default function CashClose() {
         </span>
       </div>
 
-      {/* Sales by payment */}
       <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
         <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
           <TrendingUp className="h-5 w-5 text-primary" /> Vendas por Forma de Pagamento
@@ -188,7 +185,6 @@ export default function CashClose() {
         )}
       </div>
 
-      {/* Summary */}
       <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
         <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
           <Calculator className="h-5 w-5 text-primary" /> Resumo do Caixa
@@ -213,35 +209,42 @@ export default function CashClose() {
             <span className="text-muted-foreground">Total de pedidos hoje</span>
             <span className="font-medium">{todayOrders.length}</span>
           </div>
-          <div className="flex justify-between items-center pt-1">
-            <span className="font-heading font-semibold">Total de vendas</span>
-            <span className="font-heading font-bold text-xl text-primary">R$ {totalSales.toFixed(2)}</span>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Total de vendas</span>
+            <span className="font-heading font-bold text-primary">R$ {totalSales.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between text-sm">
+            <span className="text-muted-foreground">Custo total</span>
+            <span className="font-medium text-destructive">- R$ {totalCost.toFixed(2)}</span>
+          </div>
+          <div className="flex justify-between items-center pt-3 border-t border-border">
+            <span className="font-heading font-semibold">Lucro</span>
+            <span className={`font-heading font-bold text-xl ${totalProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+              R$ {totalProfit.toFixed(2)}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* Close button */}
-      <button
-        onClick={() => setConfirmClose(true)}
-        className="w-full flex items-center justify-center gap-2 bg-destructive text-destructive-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity"
-      >
+      <button onClick={() => setConfirmClose(true)} className="w-full flex items-center justify-center gap-2 bg-destructive text-destructive-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity">
         <Lock className="h-5 w-5" /> Fechar Caixa
       </button>
 
-      {/* Confirm dialog */}
       <Dialog open={confirmClose} onOpenChange={setConfirmClose}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="font-heading">Fechar Caixa?</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-muted-foreground text-sm">
-              Tem certeza que deseja fechar o caixa do dia? Após fechar, os dados ficarão salvos em "Caixas Anteriores".
-            </p>
+            <p className="text-muted-foreground text-sm">Tem certeza que deseja fechar o caixa do dia?</p>
             <div className="bg-secondary/50 rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Total de vendas</span>
                 <span className="font-heading font-bold text-primary">R$ {totalSales.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Lucro</span>
+                <span className={`font-heading font-bold ${totalProfit >= 0 ? "text-emerald-600" : "text-destructive"}`}>R$ {totalProfit.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Pedidos</span>

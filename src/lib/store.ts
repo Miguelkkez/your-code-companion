@@ -5,6 +5,7 @@ export interface MenuItem {
   name: string;
   description?: string;
   price: number;
+  cost_price?: number;
   category: string;
   image_url?: string;
   available: boolean;
@@ -15,6 +16,7 @@ export interface OrderItem {
   menu_item_id: string;
   name: string;
   price: number;
+  cost_price?: number;
   quantity: number;
 }
 
@@ -23,6 +25,7 @@ export interface Order {
   customer_name: string;
   items: OrderItem[];
   total: number;
+  total_cost?: number;
   status: "pending" | "preparing" | "ready" | "delivered" | "cancelled";
   notes?: string;
   order_number: number;
@@ -32,12 +35,14 @@ export interface Order {
 
 export interface CashRegister {
   id: string;
-  date: string; // YYYY-MM-DD
+  date: string;
   opened_at: string;
   closed_at?: string;
   initial_cash: number;
   status: "open" | "closed";
   total_sales: number;
+  total_cost: number;
+  total_profit: number;
   total_orders: number;
   by_payment: Record<string, number>;
   order_ids: string[];
@@ -136,6 +141,8 @@ export const cashRegisterStore = {
       initial_cash: initialCash,
       status: "open",
       total_sales: 0,
+      total_cost: 0,
+      total_profit: 0,
       total_orders: 0,
       by_payment: {},
       order_ids: [],
@@ -144,7 +151,7 @@ export const cashRegisterStore = {
     saveAll("cash_registers", items);
     return register;
   },
-  close(id: string, summary: { total_sales: number; total_orders: number; by_payment: Record<string, number>; order_ids: string[] }): CashRegister | null {
+  close(id: string, summary: { total_sales: number; total_cost: number; total_profit: number; total_orders: number; by_payment: Record<string, number>; order_ids: string[] }): CashRegister | null {
     const items = getAll<CashRegister>("cash_registers");
     const idx = items.findIndex(i => i.id === id);
     if (idx === -1) return null;
