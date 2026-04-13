@@ -1,4 +1,4 @@
-// Simple localStorage-based data store
+// Hybrid data store: uses Electron file system when available, localStorage as fallback
 
 export interface MenuItem {
   id: string;
@@ -52,7 +52,34 @@ function generateId(): string {
   return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
 }
 
+// ---- Hybrid persistence layer ----
+// In Electron: reads/writes JSON files on disk via IPC (async, but we cache in memory)
+// In browser: uses localStorage
+
+const isElectron = typeof window !== "undefined" && !!window.electronStore;
+
+// In-memory cache for Electron mode
+const memoryCache: Record<string, any[]> = {};
+let electronInitialized = false;
+
+// Load all data from Electron files into memory cache
+export async function initializeStore(): Promise<void> {
+  if (!isElectron || electronInitialized) return;
+  const keys = ["menu_items", "orders", "cash_registers"];
+  for (const key of keys) {
+    try {
+      memoryCache[key] = await window.electronStore!.get(key);
+    } catch {
+      memoryCache[key] = [];
+    }
+  }
+  electronInitialized = true;
+}
+
 function getAll<T>(key: string): T[] {
+  if (isElectron) {
+    return (memoryCache[key] || []) as T[];
+  }
   try {
     return JSON.parse(localStorage.getItem(key) || "[]");
   } catch {
@@ -61,8 +88,16 @@ function getAll<T>(key: string): T[] {
 }
 
 function saveAll<T>(key: string, data: T[]) {
-  localStorage.setItem(key, JSON.stringify(data));
+  if (isElectron) {
+    memoryCache[key] = data;
+    // Write to disk asynchronously
+    window.electronStore!.set(key, data).catch((e: any) => console.error("Save error:", e));
+  } else {
+    localStorage.setItem(key, JSON.stringify(data));
+  }
 }
+
+// ---- Stores (unchanged API) ----
 
 export const menuItemStore = {
   list(sortField?: string, limit?: number): MenuItem[] {
