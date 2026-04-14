@@ -10,6 +10,7 @@ import Menu from "@/pages/Menu";
 import CashClose from "@/pages/CashClose";
 import CashHistory from "@/pages/CashHistory";
 import Reports from "@/pages/Reports";
+import Backup from "@/pages/Backup";
 import NotFound from "@/pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/fechamento" element={<CashClose />} />
             <Route path="/caixas-anteriores" element={<CashHistory />} />
             <Route path="/relatorios" element={<Reports />} />
+            <Route path="/backup" element={<Backup />} />
             <Route path="*" element={<NotFound />} />
           </Route>
         </Routes>
