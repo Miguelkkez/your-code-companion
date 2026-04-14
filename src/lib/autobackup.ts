@@ -1,6 +1,16 @@
 // Auto-backup service using File System Access API
 // Saves data to a user-chosen folder every hour automatically
 
+declare global {
+  interface Window {
+    showDirectoryPicker?: (options?: { mode?: string }) => Promise<FileSystemDirectoryHandle>;
+  }
+  interface FileSystemDirectoryHandle {
+    queryPermission?: (opts: { mode: string }) => Promise<string>;
+    requestPermission?: (opts: { mode: string }) => Promise<string>;
+  }
+}
+
 const BACKUP_INTERVAL = 60 * 60 * 1000; // 1 hour
 const HANDLE_KEY = "autobackup_enabled";
 const LAST_BACKUP_KEY = "autobackup_last";
