@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { LayoutDashboard, ShoppingBag, PlusCircle, UtensilsCrossed, X, Calculator, BarChart3 } from "lucide-react";
+import { LayoutDashboard, ShoppingBag, PlusCircle, UtensilsCrossed, X, Calculator, BarChart3, HardDrive } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -9,6 +9,7 @@ const navItems = [
   { path: "/cardapio", label: "Cardápio", icon: UtensilsCrossed },
   { path: "/fechamento", label: "Caixa", icon: Calculator },
   { path: "/relatorios", label: "Relatórios", icon: BarChart3 },
+  { path: "/backup", label: "Backup", icon: HardDrive },
 ];
 
 interface SidebarProps {
