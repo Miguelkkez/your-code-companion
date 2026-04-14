@@ -7,11 +7,15 @@ interface StatCardProps {
   value: string | number;
   subtitle?: string;
   color?: "primary" | "green" | "blue" | "amber";
+  delay?: number;
 }
 
-export default function StatCard({ icon: Icon, label, value, subtitle, color = "primary" }: StatCardProps) {
+export default function StatCard({ icon: Icon, label, value, subtitle, color = "primary", delay = 0 }: StatCardProps) {
   return (
-    <div className="bg-card rounded-2xl p-5 border border-border shadow-sm hover:shadow-md transition-shadow duration-300">
+    <div
+      className="bg-card rounded-2xl p-5 border border-border hover-lift animate-fade-in-up"
+      style={{ animationDelay: `${delay}ms` }}
+    >
       <div className="flex items-start justify-between">
         <div>
           <p className="text-sm text-muted-foreground font-medium">{label}</p>
@@ -19,11 +23,11 @@ export default function StatCard({ icon: Icon, label, value, subtitle, color = "
           {subtitle && <p className="text-xs text-muted-foreground mt-1">{subtitle}</p>}
         </div>
         <div className={cn(
-          "h-12 w-12 rounded-xl flex items-center justify-center",
+          "h-12 w-12 rounded-xl flex items-center justify-center transition-transform duration-300",
           color === "primary" && "bg-primary/10 text-primary",
-          color === "green" && "bg-emerald-500/10 text-emerald-600",
-          color === "blue" && "bg-blue-500/10 text-blue-600",
-          color === "amber" && "bg-amber-500/10 text-amber-600"
+          color === "green" && "bg-primary/10 text-primary",
+          color === "blue" && "bg-primary/10 text-primary",
+          color === "amber" && "bg-primary/10 text-primary"
         )}>
           <Icon className="h-6 w-6" />
         </div>
