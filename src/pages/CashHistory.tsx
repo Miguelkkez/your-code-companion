@@ -27,6 +27,9 @@ export default function CashHistory() {
     Dinheiro: { icon: Banknote, color: "text-emerald-600", bg: "bg-emerald-500/10" },
     "Cartão": { icon: CreditCard, color: "text-blue-600", bg: "bg-blue-500/10" },
     Pix: { icon: Smartphone, color: "text-violet-600", bg: "bg-violet-500/10" },
+    "QR Code Pix": { icon: Smartphone, color: "text-violet-600", bg: "bg-violet-500/10" },
+    "iFood": { icon: Smartphone, color: "text-red-600", bg: "bg-red-500/10" },
+    "99": { icon: Smartphone, color: "text-yellow-600", bg: "bg-yellow-500/10" },
     "Não informado": { icon: DollarSign, color: "text-muted-foreground", bg: "bg-muted" },
   };
 

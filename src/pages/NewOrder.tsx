@@ -153,6 +153,9 @@ export default function NewOrder() {
                   <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
                   <SelectItem value="Cartão">💳 Cartão</SelectItem>
                   <SelectItem value="Pix">📱 Pix</SelectItem>
+                  <SelectItem value="QR Code Pix">📲 QR Code Pix</SelectItem>
+                  <SelectItem value="iFood">🛵 iFood</SelectItem>
+                  <SelectItem value="99">🚗 99</SelectItem>
                 </SelectContent>
               </Select>
             </div>
