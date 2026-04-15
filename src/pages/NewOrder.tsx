@@ -3,9 +3,11 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
 import { menuItemStore, orderStore, type MenuItem, type OrderItem } from "@/lib/store";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { printReceipt } from "@/components/orders/ReceiptPrint";
 
 const categoryEmojis: Record<string, string> = {
   Lanches: "🍔", Bebidas: "🥤", Porções: "🍟", Doces: "🍰", Combos: "🎉",
@@ -30,6 +32,7 @@ export default function NewOrder() {
   const [searchQuery, setSearchQuery] = useState("");
   const [showPaymentDialog, setShowPaymentDialog] = useState(false);
   const [paymentValues, setPaymentValues] = useState<Record<string, string>>({});
+  const [printCoupon, setPrintCoupon] = useState(false);
 
   useEffect(() => {
     setMenuItems(menuItemStore.filter({ available: true }));
@@ -97,7 +100,7 @@ export default function NewOrder() {
     const paymentDetails: Record<string, number> = {};
     usedMethods.forEach((m) => { paymentDetails[m] = parseFloat(paymentValues[m] || "0"); });
 
-    orderStore.create({
+    const newOrder = orderStore.create({
       customer_name: "-",
       items: cart,
       total,
@@ -108,6 +111,10 @@ export default function NewOrder() {
       payment_details: paymentDetails,
       change_amount: diff > 0 ? diff : 0,
     });
+
+    if (printCoupon) {
+      printReceipt(newOrder);
+    }
 
     toast({ title: "Pedido criado!", description: `Pedido #${nextNumber} criado com sucesso!${diff > 0 ? ` Troco: R$ ${diff.toFixed(2)}` : ""}` });
     setShowPaymentDialog(false);
