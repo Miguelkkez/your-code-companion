@@ -12,6 +12,7 @@ export default function CashClose() {
   const [loading, setLoading] = useState(true);
   const [initialCash, setInitialCash] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
+  const [countedValues, setCountedValues] = useState<Record<string, string>>({});
 
   const reload = () => {
     const reg = cashRegisterStore.getOpen();
@@ -70,6 +71,9 @@ export default function CashClose() {
     Dinheiro: { icon: Banknote, color: "text-emerald-600", bg: "bg-emerald-500/10" },
     "Cartão": { icon: CreditCard, color: "text-blue-600", bg: "bg-blue-500/10" },
     Pix: { icon: Smartphone, color: "text-violet-600", bg: "bg-violet-500/10" },
+    "QR Code Pix": { icon: Smartphone, color: "text-violet-600", bg: "bg-violet-500/10" },
+    "iFood": { icon: Smartphone, color: "text-red-600", bg: "bg-red-500/10" },
+    "99": { icon: Smartphone, color: "text-yellow-600", bg: "bg-yellow-500/10" },
     "Não informado": { icon: DollarSign, color: "text-muted-foreground", bg: "bg-muted" },
   };
 
@@ -230,17 +234,71 @@ export default function CashClose() {
         <Lock className="h-5 w-5" /> Fechar Caixa
       </button>
 
-      <Dialog open={confirmClose} onOpenChange={setConfirmClose}>
-        <DialogContent className="sm:max-w-md">
+      <Dialog open={confirmClose} onOpenChange={(open) => {
+        setConfirmClose(open);
+        if (open) {
+          // Initialize counted values for all payment methods present
+          const methods = Object.keys(byPayment);
+          const initial: Record<string, string> = {};
+          methods.forEach(m => { initial[m] = ""; });
+          setCountedValues(initial);
+        }
+      }}>
+        <DialogContent className="sm:max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
-            <DialogTitle className="font-heading">Fechar Caixa?</DialogTitle>
+            <DialogTitle className="font-heading">Fechar Caixa</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
-            <p className="text-muted-foreground text-sm">Tem certeza que deseja fechar o caixa do dia?</p>
+            <p className="text-muted-foreground text-sm">Informe o valor contado para cada forma de pagamento:</p>
+            
+            <div className="space-y-3">
+              {Object.entries(byPayment).map(([method, expected]) => {
+                const config = paymentIcons[method] || paymentIcons["Não informado"];
+                const Icon = config.icon;
+                const counted = parseFloat(countedValues[method] || "0") || 0;
+                const diff = counted - expected;
+                return (
+                  <div key={method} className="p-4 rounded-xl bg-secondary/50 border border-border space-y-2">
+                    <div className="flex items-center justify-between">
+                      <div className="flex items-center gap-2">
+                        <div className={`h-8 w-8 rounded-lg ${config.bg} flex items-center justify-center`}>
+                          <Icon className={`h-4 w-4 ${config.color}`} />
+                        </div>
+                        <span className="font-medium text-foreground">{method}</span>
+                      </div>
+                      <span className="text-sm text-muted-foreground">Esperado: R$ {expected.toFixed(2)}</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-muted-foreground">R$</span>
+                      <Input
+                        type="number"
+                        step="0.01"
+                        placeholder="0,00"
+                        value={countedValues[method] || ""}
+                        onChange={(e) => setCountedValues(prev => ({ ...prev, [method]: e.target.value }))}
+                        className="font-heading font-bold"
+                      />
+                      {countedValues[method] && (
+                        <span className={`text-xs font-medium whitespace-nowrap ${diff === 0 ? "text-emerald-600" : diff > 0 ? "text-blue-600" : "text-destructive"}`}>
+                          {diff === 0 ? "✓ OK" : diff > 0 ? `+R$ ${diff.toFixed(2)}` : `-R$ ${Math.abs(diff).toFixed(2)}`}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
             <div className="bg-secondary/50 rounded-xl p-4 space-y-2">
               <div className="flex justify-between text-sm">
-                <span className="text-muted-foreground">Total de vendas</span>
+                <span className="text-muted-foreground">Total de vendas (sistema)</span>
                 <span className="font-heading font-bold text-primary">R$ {totalSales.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Total contado</span>
+                <span className="font-heading font-bold">
+                  R$ {Object.values(countedValues).reduce((s, v) => s + (parseFloat(v) || 0), 0).toFixed(2)}
+                </span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Lucro</span>
