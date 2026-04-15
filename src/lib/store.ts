@@ -30,6 +30,8 @@ export interface Order {
   notes?: string;
   order_number: number;
   payment_method?: string;
+  payment_details?: Record<string, number>;
+  change_amount?: number;
   created_date: string;
 }
 
