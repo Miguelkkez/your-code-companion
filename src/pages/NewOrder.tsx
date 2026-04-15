@@ -259,8 +259,8 @@ export default function NewOrder() {
             </div>
             <div className={cn(
               "flex justify-between text-sm font-bold rounded-lg p-2 -mx-2",
-              diff === 0 ? "text-green-600 bg-green-50" :
-              diff > 0 ? "text-blue-600 bg-blue-50" :
+              diff === 0 ? "text-primary bg-primary/10" :
+              diff > 0 ? "text-accent-foreground bg-accent" :
               "text-destructive bg-destructive/10"
             )}>
               <span>{diff > 0 ? "🔄 Troco:" : diff < 0 ? "⚠️ Faltam:" : "✅ Valor exato"}</span>
