@@ -3,13 +3,22 @@ import { useNavigate, Link } from "react-router-dom";
 import { toast } from "@/components/ui/use-toast";
 import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Search } from "lucide-react";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
 import { menuItemStore, orderStore, type MenuItem, type OrderItem } from "@/lib/store";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 
 const categoryEmojis: Record<string, string> = {
   Lanches: "🍔", Bebidas: "🥤", Porções: "🍟", Doces: "🍰", Combos: "🎉",
 };
+
+const PAYMENT_METHODS = [
+  { key: "Dinheiro", emoji: "💵" },
+  { key: "Cartão", emoji: "💳" },
+  { key: "Pix", emoji: "📱" },
+  { key: "QR Code Pix", emoji: "📲" },
+  { key: "iFood", emoji: "🛵" },
+  { key: "99", emoji: "🚗" },
+];
 
 export default function NewOrder() {
   const navigate = useNavigate();
@@ -19,7 +28,8 @@ export default function NewOrder() {
   const [cart, setCart] = useState<OrderItem[]>([]);
   const [activeCategory, setActiveCategory] = useState("all");
   const [searchQuery, setSearchQuery] = useState("");
-  const [paymentMethod, setPaymentMethod] = useState("");
+  const [showPaymentDialog, setShowPaymentDialog] = useState(false);
+  const [paymentValues, setPaymentValues] = useState<Record<string, string>>({});
 
   useEffect(() => {
     setMenuItems(menuItemStore.filter({ available: true }));
@@ -53,14 +63,39 @@ export default function NewOrder() {
   const total = cart.reduce((sum, item) => sum + item.price * item.quantity, 0);
   const totalCost = cart.reduce((sum, item) => sum + (item.cost_price || 0) * item.quantity, 0);
 
-  const handleSubmit = () => {
+  const totalPaid = Object.values(paymentValues).reduce((sum, v) => sum + (parseFloat(v) || 0), 0);
+  const diff = totalPaid - total;
+
+  const handleOpenPayment = () => {
     if (cart.length === 0) {
       toast({ title: "Erro", description: "Adicione pelo menos um item", variant: "destructive" });
       return;
     }
+    setPaymentValues({});
+    setShowPaymentDialog(true);
+  };
+
+  const handleConfirmPayment = () => {
+    if (totalPaid < total) {
+      toast({ title: "Valor insuficiente", description: `Faltam R$ ${(total - totalPaid).toFixed(2)} para completar o pagamento.`, variant: "destructive" });
+      return;
+    }
+
+    const usedMethods = PAYMENT_METHODS
+      .filter((m) => parseFloat(paymentValues[m.key] || "0") > 0)
+      .map((m) => m.key);
+
+    if (usedMethods.length === 0) {
+      toast({ title: "Erro", description: "Informe pelo menos uma forma de pagamento.", variant: "destructive" });
+      return;
+    }
+
     setSubmitting(true);
     const allOrders = orderStore.list("-order_number", 1);
     const nextNumber = allOrders.length > 0 && allOrders[0].order_number ? allOrders[0].order_number + 1 : 1;
+
+    const paymentDetails: Record<string, number> = {};
+    usedMethods.forEach((m) => { paymentDetails[m] = parseFloat(paymentValues[m] || "0"); });
 
     orderStore.create({
       customer_name: "-",
@@ -69,10 +104,13 @@ export default function NewOrder() {
       total_cost: totalCost,
       status: "pending",
       order_number: nextNumber,
-      payment_method: paymentMethod || undefined,
+      payment_method: usedMethods.join(", "),
+      payment_details: paymentDetails,
+      change_amount: diff > 0 ? diff : 0,
     });
 
-    toast({ title: "Pedido criado!", description: `Pedido #${nextNumber} criado com sucesso!` });
+    toast({ title: "Pedido criado!", description: `Pedido #${nextNumber} criado com sucesso!${diff > 0 ? ` Troco: R$ ${diff.toFixed(2)}` : ""}` });
+    setShowPaymentDialog(false);
     navigate("/pedidos");
   };
 
@@ -145,20 +183,6 @@ export default function NewOrder() {
             <h2 className="font-heading font-bold text-lg flex items-center gap-2">
               <ShoppingBag className="h-5 w-5 text-primary" /> Resumo do Pedido
             </h2>
-            <div>
-              <label className="text-sm font-medium text-foreground">Pagamento</label>
-              <Select value={paymentMethod} onValueChange={setPaymentMethod}>
-                <SelectTrigger className="mt-1"><SelectValue placeholder="Forma de pagamento" /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="Dinheiro">💵 Dinheiro</SelectItem>
-                  <SelectItem value="Cartão">💳 Cartão</SelectItem>
-                  <SelectItem value="Pix">📱 Pix</SelectItem>
-                  <SelectItem value="QR Code Pix">📲 QR Code Pix</SelectItem>
-                  <SelectItem value="iFood">🛵 iFood</SelectItem>
-                  <SelectItem value="99">🚗 99</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
             <div className="border-t border-border pt-3 space-y-2">
               {cart.length === 0 ? (
                 <p className="text-sm text-muted-foreground text-center py-4">Carrinho vazio</p>
@@ -181,12 +205,78 @@ export default function NewOrder() {
               <span className="font-heading font-bold text-lg">Total</span>
               <span className="font-heading font-bold text-xl text-primary">R$ {total.toFixed(2)}</span>
             </div>
-            <button onClick={handleSubmit} disabled={submitting || cart.length === 0} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20">
-              {submitting ? "Criando..." : "Criar Pedido"}
+            <button onClick={handleOpenPayment} disabled={submitting || cart.length === 0} className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20">
+              Finalizar Pedido
             </button>
           </div>
         </div>
       </div>
+
+      {/* Payment Dialog */}
+      <Dialog open={showPaymentDialog} onOpenChange={setShowPaymentDialog}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="font-heading text-xl">Pagamento</DialogTitle>
+            <DialogDescription>
+              Informe o valor recebido em cada forma de pagamento.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="text-center py-2">
+            <p className="text-sm text-muted-foreground">Total do pedido</p>
+            <p className="text-2xl font-heading font-bold text-primary">R$ {total.toFixed(2)}</p>
+          </div>
+
+          <div className="space-y-3 max-h-[40vh] overflow-y-auto">
+            {PAYMENT_METHODS.map((method) => (
+              <div key={method.key} className="flex items-center gap-3">
+                <span className="text-xl w-8 text-center">{method.emoji}</span>
+                <label className="text-sm font-medium min-w-[90px]">{method.key}</label>
+                <div className="relative flex-1">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-xs text-muted-foreground">R$</span>
+                  <Input
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    placeholder="0,00"
+                    value={paymentValues[method.key] || ""}
+                    onChange={(e) => setPaymentValues((prev) => ({ ...prev, [method.key]: e.target.value }))}
+                    className="pl-9 text-right"
+                  />
+                </div>
+              </div>
+            ))}
+          </div>
+
+          <div className="border-t border-border pt-3 space-y-2">
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total informado:</span>
+              <span className="font-medium">R$ {totalPaid.toFixed(2)}</span>
+            </div>
+            <div className="flex justify-between text-sm">
+              <span className="text-muted-foreground">Total do pedido:</span>
+              <span className="font-medium">R$ {total.toFixed(2)}</span>
+            </div>
+            <div className={cn(
+              "flex justify-between text-sm font-bold rounded-lg p-2 -mx-2",
+              diff === 0 ? "text-primary bg-primary/10" :
+              diff > 0 ? "text-accent-foreground bg-accent" :
+              "text-destructive bg-destructive/10"
+            )}>
+              <span>{diff > 0 ? "🔄 Troco:" : diff < 0 ? "⚠️ Faltam:" : "✅ Valor exato"}</span>
+              {diff !== 0 && <span>R$ {Math.abs(diff).toFixed(2)}</span>}
+            </div>
+          </div>
+
+          <button
+            onClick={handleConfirmPayment}
+            disabled={submitting || totalPaid < total}
+            className="w-full bg-primary text-primary-foreground py-3 rounded-xl font-heading font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 shadow-lg shadow-primary/20"
+          >
+            {submitting ? "Criando..." : "Confirmar Pagamento"}
+          </button>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
