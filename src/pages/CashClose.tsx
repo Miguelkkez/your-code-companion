@@ -325,6 +325,32 @@ export default function CashClose() {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Edit Initial Cash Dialog */}
+      <Dialog open={editingInitialCash} onOpenChange={setEditingInitialCash}>
+        <DialogContent className="sm:max-w-sm">
+          <DialogHeader>
+            <DialogTitle className="font-heading">Editar Fundo de Caixa</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="flex items-center gap-3">
+              <span className="text-muted-foreground font-medium">R$</span>
+              <Input type="number" step="0.01" placeholder="0,00" value={newInitialCash} onChange={(e) => setNewInitialCash(e.target.value)} className="text-lg font-heading font-bold" />
+            </div>
+            <div className="flex gap-3">
+              <button onClick={() => setEditingInitialCash(false)} className="flex-1 py-2.5 rounded-xl border border-border font-medium hover:bg-muted transition-colors">Cancelar</button>
+              <button onClick={() => {
+                const val = parseFloat(newInitialCash) || 0;
+                if (val < 0) { toast({ title: "Erro", description: "Valor inválido", variant: "destructive" }); return; }
+                cashRegisterStore.update(openRegister!.id, { initial_cash: val });
+                toast({ title: "Fundo atualizado!", description: `Novo fundo: R$ ${val.toFixed(2)}` });
+                setEditingInitialCash(false);
+                reload();
+              }} className="flex-1 py-2.5 rounded-xl bg-primary text-primary-foreground font-heading font-semibold hover:opacity-90 transition-opacity">Salvar</button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
