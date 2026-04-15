@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
-import { DollarSign, CreditCard, Smartphone, Banknote, TrendingUp, Calculator, Lock, Unlock, History } from "lucide-react";
+import { DollarSign, CreditCard, Smartphone, Banknote, TrendingUp, Calculator, Lock, Unlock, History, Pencil } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { toast } from "@/components/ui/use-toast";
 import { orderStore, cashRegisterStore, type Order, type CashRegister } from "@/lib/store";
@@ -13,6 +13,8 @@ export default function CashClose() {
   const [initialCash, setInitialCash] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
   const [countedValues, setCountedValues] = useState<Record<string, string>>({});
+  const [editingInitialCash, setEditingInitialCash] = useState(false);
+  const [newInitialCash, setNewInitialCash] = useState("");
 
   const reload = () => {
     const reg = cashRegisterStore.getOpen();
@@ -153,9 +155,12 @@ export default function CashClose() {
 
       <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-xl p-4 flex items-center gap-3">
         <div className="h-3 w-3 rounded-full bg-emerald-500 animate-pulse" />
-        <span className="text-sm font-medium text-emerald-700">
+        <span className="text-sm font-medium text-emerald-700 flex-1">
           Caixa aberto desde {new Date(openRegister.opened_at).toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })} — Fundo: R$ {openRegister.initial_cash.toFixed(2)}
         </span>
+        <button onClick={() => { setNewInitialCash(openRegister.initial_cash.toString()); setEditingInitialCash(true); }} className="p-1.5 rounded-lg hover:bg-emerald-500/20 transition-colors" title="Editar fundo de caixa">
+          <Pencil className="h-3.5 w-3.5 text-emerald-700" />
+        </button>
       </div>
 
       <div className="bg-card rounded-2xl border border-border p-6 space-y-4">

@@ -275,6 +275,11 @@ export default function NewOrder() {
             </div>
           </div>
 
+          <div className="flex items-center gap-2 py-1">
+            <Checkbox id="print-coupon" checked={printCoupon} onCheckedChange={(v) => setPrintCoupon(!!v)} />
+            <label htmlFor="print-coupon" className="text-sm text-muted-foreground cursor-pointer">🖨️ Imprimir cupom não fiscal</label>
+          </div>
+
           <button
             onClick={handleConfirmPayment}
             disabled={submitting || totalPaid < total}
