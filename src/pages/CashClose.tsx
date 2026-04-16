@@ -64,6 +64,9 @@ export default function CashClose() {
       order_ids: regOrders.map((o) => o.id),
     });
 
+    // Archive orders so they don't appear in the active orders list
+    regOrders.forEach((o) => orderStore.update(o.id, { archived: true }));
+
     setConfirmClose(false);
     toast({ title: "Caixa fechado!", description: `Lucro: R$ ${totalProfit.toFixed(2)}` });
     reload();

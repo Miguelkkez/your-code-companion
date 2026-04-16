@@ -18,6 +18,7 @@ export default function Orders() {
   useEffect(() => { loadOrders(); }, []);
 
   const filteredOrders = orders.filter((o) => {
+    if (o.archived) return false;
     if (search) {
       const q = search.toLowerCase();
       return o.customer_name?.toLowerCase().includes(q) || o.order_number?.toString().includes(q);
