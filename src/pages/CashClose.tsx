@@ -12,7 +12,7 @@ export default function CashClose() {
   const [loading, setLoading] = useState(true);
   const [initialCash, setInitialCash] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
-  const [countedValues, setCountedValues] = useState<Record<string, string>>({});
+  const [countedValues] = useState<Record<string, string>>({});
   const [editingInitialCash, setEditingInitialCash] = useState(false);
   const [newInitialCash, setNewInitialCash] = useState("");
 
