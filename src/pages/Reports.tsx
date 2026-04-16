@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BarChart3, TrendingUp, Award, Calendar, DollarSign } from "lucide-react";
 import { orderStore, menuItemStore, type Order, type MenuItem } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const dayNamesShort = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
@@ -206,6 +207,62 @@ export default function Reports() {
           </div>
         </div>
       </div>
+
+      {/* Monthly Sales Chart */}
+      {(() => {
+        const monthlyData: Record<string, { revenue: number; cost: number; orders: number }> = {};
+        filteredOrders.forEach((o) => {
+          const d = new Date(o.created_date);
+          const key = `${d.getFullYear()}-${String(d.getMonth()).padStart(2, "0")}`;
+          if (!monthlyData[key]) monthlyData[key] = { revenue: 0, cost: 0, orders: 0 };
+          monthlyData[key].revenue += o.total || 0;
+          const orderCost = o.total_cost ?? o.items?.reduce((c, item) => {
+            const itemCost = item.cost_price ?? costLookup[item.name] ?? 0;
+            return c + itemCost * item.quantity;
+          }, 0) ?? 0;
+          monthlyData[key].cost += orderCost;
+          monthlyData[key].orders += 1;
+        });
+        const sortedMonths = Object.keys(monthlyData).sort();
+        const maxMonthRevenue = Math.max(...sortedMonths.map(k => monthlyData[k].revenue), 1);
+
+        return sortedMonths.length > 0 ? (
+          <div className="bg-card rounded-2xl border border-border p-6 space-y-4">
+            <h2 className="font-heading font-semibold text-lg flex items-center gap-2">
+              <TrendingUp className="h-5 w-5 text-primary" /> Relatório Mensal
+            </h2>
+            <div className="flex items-end gap-3 h-52 pt-4">
+              {sortedMonths.map((key) => {
+                const data = monthlyData[key];
+                const [, monthIdx] = key.split("-");
+                const profit = data.revenue - data.cost;
+                const isMax = data.revenue === maxMonthRevenue;
+                return (
+                  <div key={key} className="flex-1 flex flex-col items-center gap-2 min-w-0">
+                    <span className="text-xs font-heading font-bold text-foreground truncate">
+                      R${data.revenue.toFixed(0)}
+                    </span>
+                    <div className="w-full flex justify-center">
+                      <div
+                        className={cn(
+                          "w-full max-w-12 rounded-t-lg transition-all duration-500",
+                          isMax ? "bg-primary" : "bg-primary/30"
+                        )}
+                        style={{ height: `${Math.max((data.revenue / maxMonthRevenue) * 160, data.revenue > 0 ? 8 : 2)}px` }}
+                      />
+                    </div>
+                    <span className="text-xs text-muted-foreground font-medium">{monthNames[parseInt(monthIdx)]}</span>
+                    <span className="text-xs text-muted-foreground">{data.orders}p</span>
+                    <span className={`text-xs font-bold ${profit >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                      {profit >= 0 ? "+" : ""}R${profit.toFixed(0)}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        ) : null;
+      })()}
 
       {/* Product by day detail */}
       {topProducts.length > 0 && (
