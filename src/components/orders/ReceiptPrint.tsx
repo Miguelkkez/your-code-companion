@@ -38,7 +38,7 @@ export default function ReceiptPrint({ order }: ReceiptPrintProps) {
 <style>
   @page { margin: 0; size: 58mm auto; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 11px; width: 58mm; padding: 4mm 2mm; color: #000; }
+  body { font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; width: 58mm; padding: 4mm 2mm; color: #000; }
   .center { text-align: center; }
   .bold { font-weight: bold; }
   .divider { border-top: 1px dashed #000; margin: 4px 0; }
@@ -113,7 +113,7 @@ export function printReceipt(order: Order) {
 <style>
   @page { margin: 0; size: 58mm auto; }
   * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Courier New', monospace; font-size: 11px; width: 58mm; padding: 4mm 2mm; color: #000; }
+  body { font-family: 'Courier New', monospace; font-size: 11px; font-weight: bold; width: 58mm; padding: 4mm 2mm; color: #000; }
   .center { text-align: center; }
   .divider { border-top: 1px dashed #000; margin: 4px 0; }
   table { width: 100%; border-collapse: collapse; }
