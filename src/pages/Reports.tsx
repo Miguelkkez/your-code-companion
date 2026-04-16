@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { BarChart3, TrendingUp, Award, Calendar, DollarSign } from "lucide-react";
 import { orderStore, menuItemStore, type Order, type MenuItem } from "@/lib/store";
 import { cn } from "@/lib/utils";
 
 const dayNames = ["Domingo", "Segunda", "Terça", "Quarta", "Quinta", "Sexta", "Sábado"];
 const dayNamesShort = ["Dom", "Seg", "Ter", "Qua", "Qui", "Sex", "Sáb"];
+const monthNames = ["Jan", "Fev", "Mar", "Abr", "Mai", "Jun", "Jul", "Ago", "Set", "Out", "Nov", "Dez"];
 
 export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
