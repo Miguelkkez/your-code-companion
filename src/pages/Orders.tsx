@@ -35,7 +35,7 @@ export default function Orders() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-heading font-bold text-foreground">Pedidos</h1>
-          <p className="text-muted-foreground mt-1">{orders.length} pedidos lançados</p>
+          <p className="text-muted-foreground mt-1">{filteredOrders.length} pedidos lançados</p>
         </div>
         <Link to="/novo-pedido" className="flex items-center gap-2 bg-primary text-primary-foreground px-5 py-3 rounded-xl font-medium hover:opacity-90 transition-opacity shadow-lg shadow-primary/20">
           <PlusCircle className="h-5 w-5" /> Novo Pedido
