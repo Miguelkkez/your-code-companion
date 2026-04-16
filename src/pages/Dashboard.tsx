@@ -17,8 +17,8 @@ export default function Dashboard() {
   useEffect(() => { loadOrders(); }, []);
 
   const today = new Date().toDateString();
-  const todayOrders = orders.filter((o) => new Date(o.created_date).toDateString() === today);
-  const activeOrders = orders.filter((o) => o.status === "pending" || o.status === "preparing");
+  const todayOrders = orders.filter((o) => new Date(o.created_date).toDateString() === today && !o.archived && o.status !== "cancelled");
+  const activeOrders = todayOrders.filter((o) => o.status === "pending" || o.status === "preparing");
   const todayRevenue = todayOrders.filter((o) => o.status !== "cancelled").reduce((sum, o) => sum + (o.total || 0), 0);
   const completedToday = todayOrders.filter((o) => o.status === "delivered").length;
 
