@@ -27,6 +27,7 @@ export interface Order {
   total: number;
   total_cost?: number;
   status: "pending" | "preparing" | "ready" | "delivered" | "cancelled";
+  archived?: boolean;
   notes?: string;
   order_number: number;
   payment_method?: string;
