@@ -11,7 +11,7 @@ export default function Reports() {
   const [orders, setOrders] = useState<Order[]>([]);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [loading, setLoading] = useState(true);
-  const [period, setPeriod] = useState<"7" | "30" | "all">("30");
+  const [period, setPeriod] = useState<"1" | "7" | "30" | "all">("30");
 
   useEffect(() => {
     setOrders(orderStore.list("-created_date", 9999));
@@ -19,15 +19,22 @@ export default function Reports() {
     setLoading(false);
   }, []);
 
-  const now = new Date();
-  const filteredOrders = orders.filter((o) => {
-    if (o.status === "cancelled") return false;
-    if (period === "all") return true;
-    const days = parseInt(period);
-    const orderDate = new Date(o.created_date);
-    const diff = (now.getTime() - orderDate.getTime()) / (1000 * 60 * 60 * 24);
-    return diff <= days;
-  });
+  const filteredOrders = useMemo(() => {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    return orders.filter((o) => {
+      if (o.status === "cancelled") return false;
+      if (period === "all") return true;
+      const orderDate = new Date(o.created_date);
+      if (period === "1") {
+        return orderDate >= today;
+      }
+      const days = parseInt(period);
+      const cutoff = new Date(today);
+      cutoff.setDate(cutoff.getDate() - (days - 1));
+      return orderDate >= cutoff;
+    });
+  }, [orders, period]);
 
   // Build a cost lookup from menu items
   const costLookup: Record<string, number> = {};
@@ -91,7 +98,7 @@ export default function Reports() {
           <p className="text-muted-foreground mt-1">Análise de desempenho e lucratividade</p>
         </div>
         <div className="flex gap-2">
-          {(["7", "30", "all"] as const).map((p) => (
+          {(["1", "7", "30", "all"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
@@ -102,7 +109,7 @@ export default function Reports() {
                   : "bg-card border border-border text-muted-foreground hover:text-foreground"
               )}
             >
-              {p === "7" ? "7 dias" : p === "30" ? "30 dias" : "Tudo"}
+              {p === "1" ? "Hoje" : p === "7" ? "7 dias" : p === "30" ? "30 dias" : "Tudo"}
             </button>
           ))}
         </div>
