@@ -5,7 +5,7 @@ import { Plus, Minus, Trash2, ShoppingBag, ArrowLeft, Search } from "lucide-reac
 import { Input } from "@/components/ui/input";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
-import { menuItemStore, orderStore, type MenuItem, type OrderItem } from "@/lib/store";
+import { menuItemStore, orderStore, cashRegisterStore, type MenuItem, type OrderItem } from "@/lib/store";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { printReceipt } from "@/components/orders/ReceiptPrint";
 
