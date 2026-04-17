@@ -58,8 +58,14 @@ export default function CashClose() {
     }, 0);
     const totalProfit = totalSales - totalCost;
     const byPayment = regOrders.reduce((acc, o) => {
-      const m = o.payment_method || "Não informado";
-      acc[m] = (acc[m] || 0) + (o.total || 0);
+      if (o.payment_details && Object.keys(o.payment_details).length > 0) {
+        Object.entries(o.payment_details).forEach(([m, v]) => {
+          acc[m] = (acc[m] || 0) + (v || 0);
+        });
+      } else {
+        const m = o.payment_method || "Não informado";
+        acc[m] = (acc[m] || 0) + (o.total || 0);
+      }
       return acc;
     }, {} as Record<string, number>);
 
