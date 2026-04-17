@@ -132,7 +132,7 @@ export default function CashClose() {
 
   const regDate = openRegister.date;
   const todayOrders = orders.filter(
-    (o) => o.created_date.startsWith(regDate) && o.status !== "cancelled"
+    (o) => o.created_date.startsWith(regDate) && !o.archived && o.status !== "cancelled"
   );
 
   const byPayment = todayOrders.reduce((acc, o) => {
