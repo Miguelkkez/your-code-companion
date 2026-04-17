@@ -197,7 +197,12 @@ export default function CashClose() {
             {Object.entries(byPayment).map(([method, amount]) => {
               const config = paymentIcons[method] || paymentIcons["Não informado"];
               const Icon = config.icon;
-              const count = todayOrders.filter((o) => (o.payment_method || "Não informado") === method).length;
+              const count = todayOrders.filter((o) => {
+                if (o.payment_details && Object.keys(o.payment_details).length > 0) {
+                  return Object.keys(o.payment_details).includes(method);
+                }
+                return (o.payment_method || "Não informado") === method;
+              }).length;
               return (
                 <div key={method} className="flex items-center justify-between p-4 rounded-xl bg-secondary/50 border border-border">
                   <div className="flex items-center gap-3">
