@@ -98,7 +98,7 @@ export default function Reports() {
           <p className="text-muted-foreground mt-1">Análise de desempenho e lucratividade</p>
         </div>
         <div className="flex gap-2">
-          {(["7", "30", "all"] as const).map((p) => (
+          {(["1", "7", "30", "all"] as const).map((p) => (
             <button
               key={p}
               onClick={() => setPeriod(p)}
@@ -109,7 +109,7 @@ export default function Reports() {
                   : "bg-card border border-border text-muted-foreground hover:text-foreground"
               )}
             >
-              {p === "7" ? "7 dias" : p === "30" ? "30 dias" : "Tudo"}
+              {p === "1" ? "Hoje" : p === "7" ? "7 dias" : p === "30" ? "30 dias" : "Tudo"}
             </button>
           ))}
         </div>
