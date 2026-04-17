@@ -31,6 +31,14 @@ export default function CashClose() {
       toast({ title: "Erro", description: "Valor inválido", variant: "destructive" });
       return;
     }
+    // Archive any non-cancelled, non-archived orders from previous days
+    // so they don't leak into the new register
+    const allOrders = orderStore.list("-created_date", 1000);
+    allOrders.forEach((o) => {
+      if (!o.archived && o.status !== "cancelled") {
+        orderStore.update(o.id, { archived: true });
+      }
+    });
     cashRegisterStore.open(initial);
     setInitialCash("");
     toast({ title: "Caixa aberto!", description: `Fundo de caixa: R$ ${initial.toFixed(2)}` });
@@ -41,7 +49,7 @@ export default function CashClose() {
     if (!openRegister) return;
     const regDate = openRegister.date;
     const regOrders = orders.filter(
-      (o) => o.created_date.startsWith(regDate) && o.status !== "cancelled"
+      (o) => o.created_date.startsWith(regDate) && !o.archived && o.status !== "cancelled"
     );
     const totalSales = regOrders.reduce((s, o) => s + (o.total || 0), 0);
     const totalCost = regOrders.reduce((s, o) => {
