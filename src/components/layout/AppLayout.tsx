@@ -5,6 +5,7 @@ import { Menu } from "lucide-react";
 
 export default function AppLayout() {
   const [sidebarOpen, setSidebarOpen] = useState(false);
+  const location = useLocation();
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
