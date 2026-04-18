@@ -47,9 +47,9 @@ export default function CashClose() {
 
   const handleCloseRegister = () => {
     if (!openRegister) return;
-    const regDate = openRegister.date;
+    const openedAt = new Date(openRegister.opened_at).getTime();
     const regOrders = orders.filter(
-      (o) => o.created_date.startsWith(regDate) && !o.archived && o.status !== "cancelled"
+      (o) => new Date(o.created_date).getTime() >= openedAt && !o.archived && o.status !== "cancelled"
     );
     const totalSales = regOrders.reduce((s, o) => s + (o.total || 0), 0);
     const totalCost = regOrders.reduce((s, o) => {
@@ -136,9 +136,9 @@ export default function CashClose() {
     );
   }
 
-  const regDate = openRegister.date;
+  const openedAt = new Date(openRegister.opened_at).getTime();
   const todayOrders = orders.filter(
-    (o) => o.created_date.startsWith(regDate) && !o.archived && o.status !== "cancelled"
+    (o) => new Date(o.created_date).getTime() >= openedAt && !o.archived && o.status !== "cancelled"
   );
 
   const byPayment = todayOrders.reduce((acc, o) => {

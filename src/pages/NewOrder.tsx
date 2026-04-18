@@ -94,21 +94,25 @@ export default function NewOrder() {
     }
 
     setSubmitting(true);
-    // Order # resets every cash register: count orders of the current open
-    // register's date (excluding cancelled), and add 1.
+    // Order # resets every cash register: count orders created since the
+    // current open register was opened (excluding cancelled). Using the
+    // opened_at timestamp avoids issues when the register spans midnight UTC,
+    // which previously caused the # to reset mid-shift and overwrite earlier
+    // orders.
     const openReg = cashRegisterStore.getOpen();
     let nextNumber = 1;
     if (openReg) {
+      const openedAt = new Date(openReg.opened_at).getTime();
       const regOrders = orderStore
-        .list("-created_date", 1000)
-        .filter((o) => o.created_date.startsWith(openReg.date) && o.status !== "cancelled");
+        .list("-created_date", 5000)
+        .filter((o) => new Date(o.created_date).getTime() >= openedAt && o.status !== "cancelled");
       const maxInReg = regOrders.reduce((m, o) => Math.max(m, o.order_number || 0), 0);
       nextNumber = maxInReg + 1;
     } else {
       // No open register: fallback to today's date
       const today = new Date().toISOString().split("T")[0];
       const todayOrders = orderStore
-        .list("-created_date", 1000)
+        .list("-created_date", 5000)
         .filter((o) => o.created_date.startsWith(today) && o.status !== "cancelled");
       nextNumber = todayOrders.reduce((m, o) => Math.max(m, o.order_number || 0), 0) + 1;
     }
