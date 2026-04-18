@@ -29,6 +29,9 @@ export default function AppLayout() {
           </div>
         </main>
       </div>
+      <div className="fixed bottom-2 left-2 z-50 pointer-events-none select-none text-[10px] font-medium text-muted-foreground/60 tracking-wide">
+        Made by Miguel · v1
+      </div>
     </div>
   );
 }
